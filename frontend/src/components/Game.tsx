@@ -105,14 +105,14 @@ export function Game() {
     return () => clearInterval(t);
   }, [playerSlice?.size, gameOver, DEMO_MODE]);
 
-  // Demo mode: init mock toppings once - inside circle so reachable
+  // Init toppings on mount - ensures ingredients always load (fallback if poll fails or is slow)
   useEffect(() => {
-    if (!DEMO_MODE) return;
     const tops = Array.from({ length: TOPPING_COUNT }, (_, i) => {
       const [x, y] = randomPosInCircle((i + 1) * 7, (i + 1) * 13);
       return { x, y, toppingId: i % 4, eatenAt: 0 };
     });
     setToppings(tops);
+    toppingsRef.current = tops;
   }, []);
 
   // Poll blockchain state (disabled in demo mode)

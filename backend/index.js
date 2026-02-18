@@ -9,7 +9,7 @@ const app = express();
 app.use(cors({ origin: true }));
 app.use(express.json());
 
-const CONTRACT_ADDRESS = '0x3879441B57eF716578efD5E36130BEFe95740417';
+const CONTRACT_ADDRESS = '0xf4c9a50969e6fD675000cc3cC4EB4eDed2cc7E52';
 const CONTRACT_ABI = parseAbi([
   'function move(int8 dx, int8 dy)',
   'function respawn()',
