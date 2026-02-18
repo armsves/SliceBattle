@@ -17,7 +17,7 @@ const ARENA_RADIUS_SQ = 32 * 32; // circle: x^2 + y^2 <= this
 const START_SIZE = 1000;
 const MAX_SIZE = 10000000;
 const TOPPING_COUNT = 20;
-const GAME_DURATION_SEC = 30;
+const GAME_DURATION_SEC = 10;
 
 // Deterministic "random" positions for toppings (contract-like)
 function pseudoRandom(seed: number): number {
@@ -493,11 +493,54 @@ export function Game() {
     return () => document.removeEventListener('keydown', handleKeyDown, { capture: true });
   }, [isConnected, sendMove, DEMO_MODE, BACKEND_URL, gameOver]);
 
+  const resetToppingsToFresh = useCallback(() => {
+    const tops = Array.from({ length: TOPPING_COUNT }, (_, i) => {
+      const [x, y] = randomPosInCircle((i + 1) * 7 + Date.now(), (i + 1) * 13 + 1);
+      return { x, y, toppingId: i % 4, eatenAt: 0 };
+    });
+    setToppings(tops);
+    toppingsRef.current = tops;
+  }, []);
+
+  const resetPlayerState = useCallback((addr: string) => {
+    const [x, y] = randomPosInCircle(addr.charCodeAt(0) + Date.now(), addr.charCodeAt(1) + 1);
+    const fresh = { size: START_SIZE, x, y, respawn: 0, eats: 0, toppingEats: 0, address: addr };
+    playerSliceRef.current = fresh;
+    setPlayerSlice(fresh);
+    setAllSlices(prev => {
+      const m = new Map(prev);
+      m.set(addr.toLowerCase(), { x, y, size: START_SIZE });
+      return m;
+    });
+    setLeaderboard(lb => lb.filter(e => e.address.toLowerCase() !== addr.toLowerCase()));
+  }, []);
+
   const startNewRound = useCallback(() => {
     setGameOver(false);
     setGameTimeLeft(GAME_DURATION_SEC);
     gameStartedRef.current = true;
-  }, []);
+    resetToppingsToFresh();
+    const addr = effectiveAddress || (DEMO_MODE ? '0xDemo0000000000000000000000000000000001' : address) || '';
+    if (DEMO_MODE) {
+      resetPlayerState(addr);
+    } else if (BACKEND_URL && relayerAddress) {
+      resetPlayerState(relayerAddress);
+      fetch(`${BACKEND_URL}/api/start-new-round`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
+        .then(r => r.json())
+        .then(data => { if (data.relayerAddress) setRelayerAddress(data.relayerAddress); if (data.error) setSpawnError(data.error); pollStateRef.current(); })
+        .catch(() => pollStateRef.current());
+    } else if (gelato?.client && address) {
+      resetPlayerState(address);
+      gelato.client.execute({
+        payment: sponsored(),
+        calls: [{ to: CONTRACT_ADDRESS, data: encodeFunctionData({ abi: CONTRACT_ABI, functionName: 'startNewRound', args: [] }), value: 0n }],
+      })
+        .then((result: any) => result?.wait?.().then(() => pollStateRef.current()))
+        .catch(() => pollStateRef.current());
+    } else {
+      pollStateRef.current();
+    }
+  }, [resetToppingsToFresh, resetPlayerState, effectiveAddress, DEMO_MODE, BACKEND_URL, relayerAddress, gelato?.client, address]);
 
   if (!DEMO_MODE && !isConnected && !BACKEND_URL) {
     return (
@@ -537,7 +580,6 @@ export function Game() {
           </span>
         )}
         {DEMO_MODE && <span style={{ color: '#FFD700', fontSize: '14px' }}>DEMO - Local only</span>}
-        {BACKEND_URL && !DEMO_MODE && !gameOver && <span style={{ color: '#FFD700', fontSize: '14px' }}>Playing via backend</span>}
         {!DEMO_MODE && <TXCounter txCount={txCount} blockTxCount={lastBlockTxCount} blockNumber={blockNumber} />}
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', alignItems: 'center', height: '100%', justifyContent: 'space-between', paddingBottom: '120px' }}>

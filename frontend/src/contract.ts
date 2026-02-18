@@ -1,5 +1,5 @@
 // Replace with your deployed contract address
-export const CONTRACT_ADDRESS = '0x3879441B57eF716578efD5E36130BEFe95740417' as `0x${string}`;
+export const CONTRACT_ADDRESS = '0xf4c9a50969e6fD675000cc3cC4EB4eDed2cc7E52' as `0x${string}`;
 
 export const CONTRACT_ABI = [
   {
@@ -12,6 +12,13 @@ export const CONTRACT_ABI = [
   {
     inputs: [],
     name: 'respawn',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'startNewRound',
     outputs: [],
     stateMutability: 'nonpayable',
     type: 'function',

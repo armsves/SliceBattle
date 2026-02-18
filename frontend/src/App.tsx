@@ -12,7 +12,7 @@ const backendRpc = import.meta.env.VITE_BACKEND_URL ? `${import.meta.env.VITE_BA
 const monadRpcs = [
   ...(backendRpc ? [backendRpc] : []),
   gelatoRpcUrl,
-  'https://rpc.ankr.com/monad_testnet',
+  // Ankr removed - causes ERR_INSUFFICIENT_RESOURCES under load; use VITE_BACKEND_URL instead
 ];
 
 const wagmiConfig = {

@@ -178,6 +178,19 @@ contract SliceBattle {
         emit SliceRespawned(msg.sender, s.x, s.y);
     }
 
+    /// @notice Start a new round - reset size, position, and stats
+    function startNewRound() external {
+        Slice storage s = slices[msg.sender];
+        // forge-lint: disable-next-line(unsafe-typecast)
+        s.size = uint24(START_SIZE);
+        uint256 bn = block.number;
+        (s.x, s.y) = _randomPos(uint256(uint160(msg.sender)) * bn, uint256(uint160(msg.sender)) * bn * 2);
+        s.respawn = 0;
+        s.eats = 0;
+        s.toppingEats = 0;
+        emit SliceRespawned(msg.sender, s.x, s.y);
+    }
+
     function getSlice(address player) external view returns (Slice memory) {
         return slices[player];
     }

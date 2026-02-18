@@ -13,6 +13,7 @@ const CONTRACT_ADDRESS = '0x3879441B57eF716578efD5E36130BEFe95740417';
 const CONTRACT_ABI = parseAbi([
   'function move(int8 dx, int8 dy)',
   'function respawn()',
+  'function startNewRound()',
 ]);
 
 // DRPC RPC - set in .env, never expose in frontend
@@ -71,6 +72,32 @@ app.get('/api/relayer-address', (_req, res) => {
     return res.status(503).json({ error: 'Backend not configured with PRIVATE_KEY' });
   }
   res.json({ address: account.address });
+});
+
+// POST startNewRound - reset size, position, stats for new round
+app.post('/api/start-new-round', async (req, res) => {
+  if (!walletClient || !account) {
+    return res.status(503).json({ error: 'PRIVATE_KEY not configured' });
+  }
+  try {
+    const hash = await runQueuedTx(async () => {
+      const data = encodeFunctionData({
+        abi: CONTRACT_ABI,
+        functionName: 'startNewRound',
+        args: [],
+      });
+      return walletClient.sendTransaction({
+        to: CONTRACT_ADDRESS,
+        data,
+        account,
+        chain: monadTestnet,
+      });
+    });
+    res.json({ hash, relayerAddress: account.address });
+  } catch (err) {
+    console.error('StartNewRound error:', err);
+    res.status(500).json({ error: err.message || 'Failed to start new round' });
+  }
 });
 
 // POST respawn
